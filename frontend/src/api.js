@@ -14,3 +14,30 @@ export const fetchLogs = async () => {
   const res = await axios.get(`${API_BASE}/logs`);
   return res.data;
 };
+
+export const getDatasetColumns = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axios.post(
+    `${API_BASE}/dataset_columns`,
+    formData
+  );
+
+  return response.data;
+};
+
+
+export const trainMLModel = async (file, targetColumn) => {
+  const formData = new FormData();
+
+  formData.append("file", file);
+  formData.append("target_column", targetColumn);
+
+  const response = await axios.post(
+    `${API_BASE}/train_model`,
+    formData
+  );
+
+  return response.data;
+};

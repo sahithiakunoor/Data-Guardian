@@ -6,8 +6,9 @@ from etl.impute import impute_missing
 from utils.monitor import validate_data, print_validation_report
 from utils.logger import init_log_table, log_validation
 import time,os
+import pandas as pd
 from flask_cors import CORS
-
+from ml.trainer import train_model
 
 app = Flask(__name__)
 init_log_table()
@@ -73,6 +74,79 @@ def get_logs():
     df = pd.read_sql("SELECT * FROM validation_logs ORDER BY id DESC", conn)
     return jsonify(df.to_dict(orient="records"))
 
+@app.route("/train_model", methods=["POST"])
+def train_model_endpoint():
+    try:
+        if "file" not in request.files:
+            return jsonify({
+                "error": "No file uploaded."
+            }), 400
+
+        file = request.files["file"]
+        target_column = request.form.get("target_column")
+
+        if file.filename == "":
+            return jsonify({
+                "error": "No file selected."
+            }), 400
+
+        if not file.filename.lower().endswith(".csv"):
+            return jsonify({
+                "error": "Only CSV files are supported."
+            }), 400
+
+        if not target_column:
+            return jsonify({
+                "error": "Target column is required."
+            }), 400
+
+        df = pd.read_csv(file)
+
+        result = train_model(
+            df=df,
+            target_column=target_column
+        )
+
+        return jsonify({
+            "message": "Model training completed",
+            "filename": file.filename,
+            **result
+        })
+
+    except ValueError as e:
+        return jsonify({
+            "error": str(e)
+        }), 400
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+@app.route("/dataset_columns", methods=["POST"])
+def dataset_columns():
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file uploaded."}), 400
+
+        file = request.files["file"]
+
+        if file.filename == "":
+            return jsonify({"error": "No file selected."}), 400
+
+        if not file.filename.lower().endswith(".csv"):
+            return jsonify({"error": "Only CSV files are supported."}), 400
+
+        df = pd.read_csv(file)
+
+        return jsonify({
+            "filename": file.filename,
+            "rows": len(df),
+            "columns": df.columns.tolist()
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

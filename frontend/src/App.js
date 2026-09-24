@@ -3,6 +3,7 @@ import UploadForm from "./components/UploadForm";
 import ValidationReport from "./components/ValidationReport";
 import LogsTable from "./components/LogsTable";
 import ScoreCard from "./components/ScoreCard";
+import MLTrainer from "./components/MLTrainer";
 
 export default function App() {
   const [result, setResult] = useState(null);
@@ -19,6 +20,8 @@ export default function App() {
       />
       <LogsTable />
       <ScoreCard score={result?.validation_summary?.data_quality_score ?? 100} />
+      <MLTrainer />
     </div>
+    
   );
 }
