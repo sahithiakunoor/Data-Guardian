@@ -1,35 +1,43 @@
 # Python
-.venv/
-venv/
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
 
 # Environment variables
 .env
-.env.*
+*.env
 
-# React
+# Node
 node_modules/
 frontend/node_modules/
 frontend/build/
 
-# IDE
-.idea/
-.vscode/
-
 # macOS
 .DS_Store
 
-# Local databases
-*.db
-*.sqlite
-*.sqlite3
+# IDE
+.vscode/
+.idea/
+
+# Runtime / generated data
+backend/data/datasets/
+backend/data/processed_data.csv
+backend/data/*.db
+
+# MLflow
+backend/mlruns/
+backend/mlflow.db
+mlruns/
+mlflow.db
 
 # Logs
 *.log
 
-# ML artifacts
-mlruns/
-artifacts/
-
-.git_backup/
+# Coverage / caches
+.pytest_cache/
+.coverage
+htmlcov/

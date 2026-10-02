@@ -1,32 +1,107 @@
 import React from "react";
 
-export default function ScoreCard({ score }) {
-  if (score === undefined) return null;
 
-  const color =
-    score >= 90 ? "#4CAF50" : score >= 70 ? "#FFC107" : "#F44336";
+// ScoreCard.js
+export function ScoreCard({ score = 100 })  {
+  const numericScore = Number(score);
+
+  let status = "Excellent";
+  let statusClass = "score-excellent";
+  if (
+    score === null ||
+    score === undefined
+  ) {
+    return (
+      <div className="quality-score-card">
+  
+        <div className="quality-score-header">
+  
+          <div>
+            <span>
+              Overall Score
+            </span>
+  
+            <h3>
+              Data Health
+            </h3>
+          </div>
+  
+        </div>
+  
+        <div className="score-description">
+  
+          <strong>
+            Not evaluated
+          </strong>
+  
+          <p>
+            Run validation to calculate
+            the dataset quality score.
+          </p>
+  
+        </div>
+  
+      </div>
+    );
+  }
+  
+  if (numericScore < 70) {
+    status = "Needs Attention";
+    statusClass = "score-poor";
+  } else if (numericScore < 90) {
+    status = "Good";
+    statusClass = "score-good";
+  }
 
   return (
-    <div
-      style={{
-        textAlign: "center",
-        background: "#1e1e1e",
-        color: "white",
-        borderRadius: "12px",
-        padding: "20px",
-        marginBottom: "20px",
-        boxShadow: "0 0 10px rgba(0,0,0,0.3)",
-      }}
-    >
-      <h3>Data Health Score</h3>
-      <div
-        style={{
-          fontSize: "48px",
-          fontWeight: "bold",
-          color,
-        }}
-      >
-        {score}%
+    <div className={`quality-score-card ${statusClass}`}>
+
+      <div className="quality-score-header">
+        <div>
+          <span>Overall Score</span>
+          <h3>Data Health</h3>
+        </div>
+
+        <div className="quality-status">
+          {status}
+        </div>
+      </div>
+
+      <div className="quality-score-body">
+
+        <div
+          className="score-ring"
+          style={{
+            background: `conic-gradient(
+              currentColor ${numericScore * 3.6}deg,
+              #edf1f6 0deg
+            )`,
+          }}
+        >
+          <div className="score-ring-inner">
+          <strong>
+            {Number.isInteger(numericScore)
+              ? numericScore
+              : numericScore.toFixed(1)}%
+          </strong>
+            <span>quality</span>
+          </div>
+        </div>
+
+        <div className="score-description">
+          <strong>
+            {numericScore >= 90
+              ? "Dataset is healthy"
+              : numericScore >= 70
+              ? "Minor issues detected"
+              : "Data quality issues detected"}
+          </strong>
+
+          <p>
+            Based on the latest validation run.
+          </p>
+        </div>
+
       </div>
     </div>
   );

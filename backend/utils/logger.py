@@ -36,17 +36,32 @@ def compute_quality_score(report: dict, rows: int) -> float:
     score = round(max(0, 100 * (1 - penalty)), 2)
     return score
 
-def log_validation(filename: str,
-                   rows: int,
-                   report: dict,
-                   runtime: float,
-                   missing_fixed: int = 0):
+def log_validation(
+    filename: str,
+    rows: int,
+    report: dict,
+    runtime: float,
+    missing_fixed: int = 0
+):
+    quality_score = compute_quality_score(
+        report,
+        rows
+    )
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+
     cur.execute("""
         INSERT INTO validation_logs
-        (timestamp, filename, rows, validation_report,
-         runtime_seconds, missing_fixed, data_quality_score)
+        (
+            timestamp,
+            filename,
+            rows,
+            validation_report,
+            runtime_seconds,
+            missing_fixed,
+            data_quality_score
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (
         datetime.now().isoformat(),
@@ -55,8 +70,15 @@ def log_validation(filename: str,
         json.dumps(report, indent=2),
         runtime,
         missing_fixed,
-        compute_quality_score(report, rows)
+        quality_score
     ))
+
     conn.commit()
     conn.close()
-    print(f"[Logger] Logged run for {filename} | Quality Score saved ✅")
+
+    print(
+        f"[Logger] Logged run for {filename} "
+        f"| Quality Score: {quality_score}% ✅"
+    )
+
+    return quality_score

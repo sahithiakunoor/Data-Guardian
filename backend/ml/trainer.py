@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import mlflow
 
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
@@ -17,23 +18,66 @@ from sklearn.metrics import (
     r2_score,
 )
 
+from sklearn.linear_model import (
+    LogisticRegression,
+    LinearRegression,
+)
 def detect_problem_type(y: pd.Series) -> str:
     """
-    Determine whether the target represents a classification
-    or regression problem.
+    Infer whether the target is classification or regression.
+
+    Rules:
+    - text/category/bool -> classification
+    - continuous floating-point values -> regression
+    - low-cardinality integer-like numeric values -> classification
+    - otherwise numeric -> regression
     """
 
-    unique_values = y.nunique(dropna=True)
+    clean_y = y.dropna()
 
+    if clean_y.empty:
+        raise ValueError(
+            "Target column contains no usable values."
+        )
+
+    # Text / categorical / boolean target
     if (
-        y.dtype == "object"
-        or str(y.dtype) == "category"
-        or y.dtype == "bool"
-        or unique_values <= 20
+        pd.api.types.is_object_dtype(clean_y)
+        or pd.api.types.is_categorical_dtype(clean_y)
+        or pd.api.types.is_bool_dtype(clean_y)
     ):
         return "classification"
 
-    return "regression"
+    # Numeric target
+    if pd.api.types.is_numeric_dtype(clean_y):
+
+        unique_values = clean_y.nunique()
+
+        # Check whether values are effectively integers
+        integer_like = np.all(
+            np.isclose(
+                clean_y.astype(float),
+                np.round(
+                    clean_y.astype(float)
+                )
+            )
+        )
+
+        # Integer-coded categories such as:
+        # 0/1, 1/2/3, etc.
+        if (
+            integer_like
+            and unique_values <= 10
+            and (
+                unique_values / len(clean_y)
+            ) <= 0.5
+        ):
+            return "classification"
+
+        # Continuous numeric target
+        return "regression"
+
+    return "classification"
 
 def build_preprocessor(X: pd.DataFrame):
     numeric_columns = X.select_dtypes(include=np.number).columns.tolist()
@@ -78,21 +122,30 @@ def build_preprocessor(X: pd.DataFrame):
 
     return preprocessor
 
-def train_model(df: pd.DataFrame, target_column: str) -> dict:
+def train_model(
+    df: pd.DataFrame,
+    target_column: str,
+    model_name: str
+) -> dict:
 
     if target_column not in df.columns:
         raise ValueError(
             f"Target column '{target_column}' does not exist."
         )
 
-    data = df.dropna(subset=[target_column]).copy()
+    data = df.dropna(
+        subset=[target_column]
+    ).copy()
 
     if len(data) < 10:
         raise ValueError(
             "Dataset is too small to train a model."
         )
 
-    X = data.drop(columns=[target_column])
+    X = data.drop(
+        columns=[target_column]
+    )
+
     y = data[target_column]
 
     if X.shape[1] == 0:
@@ -104,44 +157,101 @@ def train_model(df: pd.DataFrame, target_column: str) -> dict:
 
     preprocessor = build_preprocessor(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
+    X_train, X_test, y_train, y_test = (
+        train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+        )
     )
+
+    # ---------------------------------
+    # MODEL SELECTION
+    # ---------------------------------
 
     if problem_type == "classification":
 
-        model = RandomForestClassifier(
-            n_estimators=100,
-            random_state=42,
-        )
+        available_models = {
+            "logistic_regression":
+                LogisticRegression(
+                    max_iter=1000,
+                    random_state=42,
+                ),
+
+            "random_forest_classifier":
+                RandomForestClassifier(
+                    n_estimators=100,
+                    random_state=42,
+                ),
+        }
 
     else:
 
-        model = RandomForestRegressor(
-            n_estimators=100,
-            random_state=42,
+        available_models = {
+            "linear_regression":
+                LinearRegression(),
+
+            "random_forest_regressor":
+                RandomForestRegressor(
+                    n_estimators=100,
+                    random_state=42,
+                ),
+        }
+
+
+    if model_name not in available_models:
+        raise ValueError(
+            f"Model '{model_name}' is not valid "
+            f"for a {problem_type} problem."
         )
+
+
+    model = available_models[
+        model_name
+    ]
+
 
     pipeline = Pipeline(
         steps=[
-            ("preprocessor", preprocessor),
-            ("model", model),
+            (
+                "preprocessor",
+                preprocessor
+            ),
+            (
+                "model",
+                model
+            ),
         ]
     )
 
-    pipeline.fit(X_train, y_train)
 
-    predictions = pipeline.predict(X_test)
+    pipeline.fit(
+        X_train,
+        y_train
+    )
+
+
+    predictions = pipeline.predict(
+        X_test
+    )
+
+
+    # ---------------------------------
+    # METRICS
+    # ---------------------------------
 
     if problem_type == "classification":
 
         metrics = {
             "accuracy": round(
-                accuracy_score(y_test, predictions), 4
+                accuracy_score(
+                    y_test,
+                    predictions
+                ),
+                4,
             ),
+
             "precision": round(
                 precision_score(
                     y_test,
@@ -151,6 +261,7 @@ def train_model(df: pd.DataFrame, target_column: str) -> dict:
                 ),
                 4,
             ),
+
             "recall": round(
                 recall_score(
                     y_test,
@@ -160,6 +271,7 @@ def train_model(df: pd.DataFrame, target_column: str) -> dict:
                 ),
                 4,
             ),
+
             "f1_score": round(
                 f1_score(
                     y_test,
@@ -174,25 +286,117 @@ def train_model(df: pd.DataFrame, target_column: str) -> dict:
     else:
 
         rmse = np.sqrt(
-            mean_squared_error(y_test, predictions)
+            mean_squared_error(
+                y_test,
+                predictions
+            )
         )
 
         metrics = {
             "mae": round(
-                mean_absolute_error(y_test, predictions), 4
+                mean_absolute_error(
+                    y_test,
+                    predictions
+                ),
+                4,
             ),
-            "rmse": round(rmse, 4),
+
+            "rmse": round(
+                rmse,
+                4
+            ),
+
             "r2": round(
-                r2_score(y_test, predictions), 4
+                r2_score(
+                    y_test,
+                    predictions
+                ),
+                4,
             ),
         }
-    
+
+
+    # ---------------------------------
+    # MLFLOW
+    # ---------------------------------
+
+    mlflow.set_experiment(
+        "DataGuardian"
+    )
+
+    with mlflow.start_run(
+        run_name=
+        f"{model.__class__.__name__}_{target_column}"
+    ):
+
+        mlflow.log_param(
+            "target_column",
+            target_column
+        )
+
+        mlflow.log_param(
+            "problem_type",
+            problem_type
+        )
+
+        mlflow.log_param(
+            "model_name",
+            model_name
+        )
+
+        mlflow.log_param(
+            "model_class",
+            model.__class__.__name__
+        )
+
+        mlflow.log_param(
+            "training_rows",
+            len(X_train)
+        )
+
+        mlflow.log_param(
+            "testing_rows",
+            len(X_test)
+        )
+
+        mlflow.log_param(
+            "feature_count",
+            X.shape[1]
+        )
+
+        for (
+            metric_name,
+            metric_value
+        ) in metrics.items():
+
+            mlflow.log_metric(
+                metric_name,
+                metric_value
+            )
+
+
     return {
-        "problem_type": problem_type,
-        "target_column": target_column,
-        "training_rows": len(X_train),
-        "testing_rows": len(X_test),
-        "feature_count": X.shape[1],
-        "model": type(model).__name__,
-        "metrics": metrics,
+        "problem_type":
+            problem_type,
+
+        "target_column":
+            target_column,
+
+        "model_name":
+            model_name,
+
+        "model":
+            type(model).__name__,
+
+        "training_rows":
+            len(X_train),
+
+        "testing_rows":
+            len(X_test),
+
+        "feature_count":
+            X.shape[1],
+
+        "metrics":
+            metrics,
     }
