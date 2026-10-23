@@ -2,10 +2,11 @@ import pandas as pd
 import numpy as np
 import mlflow
 
+import math
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder,StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import (
@@ -88,7 +89,8 @@ def build_preprocessor(X: pd.DataFrame):
 
     numeric_pipeline = Pipeline(
         steps=[
-            ("imputer", SimpleImputer(strategy="median"))
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler",StandardScaler())
         ]
     )
 
@@ -157,15 +159,39 @@ def train_model(
 
     preprocessor = build_preprocessor(X)
 
-    X_train, X_test, y_train, y_test = (
-        train_test_split(
-            X,
-            y,
-            test_size=0.2,
-            random_state=42,
-        )
+    # Choose a stratification target when appropriate
+    stratify_target = None
+
+    if problem_type == "classification":
+        class_counts = y.value_counts()
+
+        if class_counts.min() < 2:
+            raise ValueError(
+                "Each class must have at least 2 samples "
+                "for stratified splitting."
+            )
+
+        stratify_target = y
+
+        n_classes = y.nunique()
+        n_test = math.ceil(len(y) * 0.2)
+        n_train = len(y) - n_test
+
+        if n_test < n_classes or n_train < n_classes:
+            raise ValueError(
+                "Dataset is too small for stratified splitting "
+                "with the current number of classes."
+            )
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=stratify_target
     )
 
+    
     # ---------------------------------
     # MODEL SELECTION
     # ---------------------------------
