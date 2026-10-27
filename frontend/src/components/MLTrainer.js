@@ -14,6 +14,10 @@ import {
   getProblemType,
 } from "../api";
 
+import ConfusionMatrix from "./ConfusionMatrix";
+
+import ClassificationReport from "./ClassificationReport";
+
 export default function MLTrainer({
   onTrainingComplete
 }) {
@@ -500,6 +504,17 @@ export default function MLTrainer({
                 </div>
               </>
 
+            )}
+
+            {result.confusion_matrix && (
+              <ConfusionMatrix
+                labels={result.confusion_matrix.labels}
+                matrix={result.confusion_matrix.matrix}
+              />
+            )}
+
+            {result?.report && (
+              <ClassificationReport report={result.report} />
             )}
 
           </div>

@@ -2499,3 +2499,98 @@ footer {
   }
 
 }
+
+/* Confusion Matrix */
+
+.confusion-matrix-container {
+  margin-top: 24px;
+}
+
+.confusion-matrix-container h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.confusion-matrix-container p {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 18px;
+}
+
+.confusion-matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+  table-layout: fixed;
+}
+
+.confusion-matrix-table th,
+.confusion-matrix-table td {
+  padding: 20px 12px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.confusion-matrix-table th {
+  background: #f1f5f9;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.confusion-matrix-table td {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.confusion-matrix-table .correct-prediction {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.confusion-matrix-table .incorrect-prediction {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Classification Report */
+
+.classification-report {
+  margin-top: 24px;
+}
+
+.classification-report h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #17233b;
+  margin-bottom: 16px;
+}
+
+.classification-report table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.classification-report th,
+.classification-report td {
+  padding: 14px 16px;
+  text-align: center;
+  border-bottom: 1px solid #e5eaf2;
+}
+
+.classification-report thead th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+}
+
+.classification-report tbody th {
+  font-weight: 600;
+  color: #334155;
+}
+
+.classification-report tbody tr:hover {
+  background: #f8fafc;
+}

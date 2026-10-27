@@ -14,6 +14,8 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     f1_score,
+    confusion_matrix,
+    classification_report,
     mean_absolute_error,
     mean_squared_error,
     r2_score,
@@ -138,6 +140,9 @@ def train_model(
     data = df.dropna(
         subset=[target_column]
     ).copy()
+
+    confusion_matrix_result = None
+    report=None
 
     if len(data) < 10:
         raise ValueError(
@@ -309,6 +314,23 @@ def train_model(
             ),
         }
 
+        labels = pipeline.classes_.tolist()
+        cm = confusion_matrix(y_test,predictions,labels=labels)
+        cm_list = cm.tolist()
+
+        confusion_matrix_result = {
+            "labels": labels,
+            "matrix": cm_list
+        }
+
+        report = classification_report(
+            y_test,
+            predictions,
+            labels=labels,
+            output_dict=True,
+            zero_division=0
+        )
+
     else:
 
         rmse = np.sqrt(
@@ -425,4 +447,7 @@ def train_model(
 
         "metrics":
             metrics,
+
+        "confusion_matrix": confusion_matrix_result,
+        "report": report,
     }
